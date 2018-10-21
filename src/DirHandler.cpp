@@ -69,8 +69,8 @@ int CDirHandler::Execute()
             data->tm_hour, data->tm_min, data->tm_sec);
 
          // Update directoy date limitis.
-         if (m_sdate.empty() || m_sdate.compare(date) < 0) { m_sdate = date; }
-         if (m_edate.empty() || m_edate.compare(date) > 0) { m_edate = date; }
+         if (m_sdate.empty() || m_sdate.compare(date) > 0) { m_sdate = date; }
+         if (m_edate.empty() || m_edate.compare(date) < 0) { m_edate = date; }
 
          // Generate name.
          name.clear();
