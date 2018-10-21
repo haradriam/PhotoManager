@@ -84,6 +84,7 @@ int CDirHandler::Execute()
 
          // Check if file with the same name already exists.
          int index = 0;
+         char ch_num[4];
          while (access(name.c_str(), F_OK) == 0)
          {
             if (index == 0)
@@ -96,7 +97,8 @@ int CDirHandler::Execute()
                name.erase(name.find_last_of("-") + 1);
             }
 
-            name.append(std::to_string(index));
+            snprintf(ch_num, 4, "%.3d", index);
+            name.append(ch_num);
 
             if (!ext.empty())
             {
