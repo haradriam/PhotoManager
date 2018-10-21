@@ -4,14 +4,18 @@
 #include <iostream>
 #include <unistd.h>
 
-CDirHandler::CDirHandler(std::string dir_name, std::string prefix)
+CDirHandler::CDirHandler(std::string dir_name, std::string prefix, bool recursive)
    : m_dir_name(dir_name)
    , m_prefix(prefix)
+   , m_recursive(recursive)
    , m_sdate("")
    , m_edate("")
 {
-   m_prefix.append("-");
-   m_prefix.append(dir_name);
+   if (!recursive)
+   {
+      m_prefix.append("-");
+      m_prefix.append(dir_name);
+   }
 }
 
 CDirHandler::~CDirHandler()
@@ -44,7 +48,8 @@ int CDirHandler::Execute()
    struct tm *data = NULL;
    std::string name = "";
    std::string ext = "";
-   char date[16];
+   char date[9];
+   char hour[7];
    while ((node = readdir(dir)))
    {
       // Rename file.
@@ -64,8 +69,9 @@ int CDirHandler::Execute()
          ext = name.substr(name.find_last_of(".") + 1);
 
          // Generate date information.
-         snprintf(date, 16, "%d%.2d%.2d_%.2d%.2d%.2d",
-            1900 + data->tm_year, data->tm_mon + 1, data->tm_mday,
+         snprintf(date, 9, "%d%.2d%.2d",
+            1900 + data->tm_year, data->tm_mon + 1, data->tm_mday);
+         snprintf(hour, 7, "%.2d%.2d%.2d",
             data->tm_hour, data->tm_min, data->tm_sec);
 
          // Update directoy date limitis.
@@ -75,6 +81,8 @@ int CDirHandler::Execute()
          // Generate name.
          name.clear();
          name.append(date);
+         name.append("_");
+         name.append(hour);
          name.append(m_prefix);
          if (!ext.empty())
          {
@@ -141,7 +149,7 @@ int CDirHandler::Execute()
    // Process subdirectories.
    while (m_list_dirs.size() > 0)
    {
-      CDirHandler sub_dir = CDirHandler(m_list_dirs.front(), m_prefix);
+      CDirHandler sub_dir = CDirHandler(m_list_dirs.front(), m_prefix, false);
       if (sub_dir.Execute() < 0)
       {
          std::cout << "Error processing directory " << m_list_dirs.front()
@@ -159,6 +167,8 @@ int CDirHandler::Execute()
    }
 
    // Rename direcoty.
+   if (m_recursive) { return 0; }
+
    name.clear();
    name.append(m_sdate);
    if (m_sdate.compare(m_edate) != 0)

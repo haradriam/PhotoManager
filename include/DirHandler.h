@@ -7,7 +7,7 @@
 class CDirHandler
 {
 public:
-   CDirHandler(std::string dir_name, std::string prefix);
+   CDirHandler(std::string dir_name, std::string prefix, bool recursive);
    ~CDirHandler();
    int Execute();
 
@@ -17,6 +17,9 @@ public:
 
    // Full prefix.
    std::string m_prefix;
+
+   // Recursive indicator.
+   bool m_recursive;
 
    // List of directories.
    std::list<std::string> m_list_dirs;
