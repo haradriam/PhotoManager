@@ -3,6 +3,7 @@
 #include <string.h>
 #include <iostream>
 #include <unistd.h>
+#include <libexif/exif-data.h>
 
 CDirHandler::CDirHandler(std::string dir_name, std::string prefix, bool recursive)
    : m_dir_name(dir_name)
@@ -55,24 +56,72 @@ int CDirHandler::Execute()
       // Rename file.
       if (node->d_type == DT_REG)
       {
-         // Get metada.
-         if (stat(node->d_name, &file_attr) != 0 ||
-             !(data = gmtime(&file_attr.st_mtime)))
-         {
-            std::cout << "Error getting file metada from " << node->d_name
-               << std::endl;
-            return -3;
-         }
+         date[0] = '\0';
+         hour[0] = '\0';
 
          // Get file extension.
          name = node->d_name;
          ext = name.substr(name.find_last_of(".") + 1);
 
-         // Generate date information.
-         snprintf(date, 9, "%d%.2d%.2d",
-            1900 + data->tm_year, data->tm_mon + 1, data->tm_mday);
-         snprintf(hour, 7, "%.2d%.2d%.2d",
-            data->tm_hour, data->tm_min, data->tm_sec);
+         // Try to get EXIF metadata.
+         ExifData * metadata = exif_data_new_from_file(node->d_name);
+         if (metadata)
+         {
+            ExifEntry * entry = exif_content_get_entry(
+               metadata->ifd[EXIF_IFD_EXIF], EXIF_TAG_DATE_TIME_ORIGINAL);
+            if (entry)
+            {
+               char field[32];
+               memset(field, 0, 32);
+
+               exif_entry_get_value(entry, field, 32);
+               if (strlen(field) > 0)
+               {
+                  char * token = NULL;
+                  size_t token_len = 0;
+                  int del_char = 0;
+                  unsigned int i = 0;
+
+                  token = strtok(field, " ");
+                  token_len = strlen(token);
+                  for (i = 0, del_char = 0; i < token_len && i - del_char < 8; ++i)
+                  {
+                      if (token[i] == ':') { ++del_char; }
+                      else { date[i - del_char] = token[i]; }
+                  }
+                  date[8] = '\0';
+
+                  token = strtok(NULL, " ");
+                  token_len = strlen(token);
+                  for (i = 0, del_char = 0; i < token_len && i - del_char < 6; ++i)
+                  {
+                      if (token[i] == ':') { ++del_char; }
+                      else { hour[i - del_char] = token[i]; }
+                  }
+                  hour[6] = '\0';
+               }
+            }
+
+            exif_data_unref(metadata);
+         }
+
+         // Get file metada (only if EXIF metada is not correct).
+         if (strlen(date) != 8 || strlen(hour) != 6)
+         {
+            if (stat(node->d_name, &file_attr) != 0 ||
+                !(data = gmtime(&file_attr.st_mtime)))
+            {
+               std::cout << "Error getting file metada from " << node->d_name
+                  << std::endl;
+               return -3;
+            }
+
+            // Generate date information.
+            snprintf(date, 9, "%d%.2d%.2d",
+               1900 + data->tm_year, data->tm_mon + 1, data->tm_mday);
+            snprintf(hour, 7, "%.2d%.2d%.2d",
+               data->tm_hour, data->tm_min, data->tm_sec);
+         }
 
          // Update directoy date limitis.
          if (m_sdate.empty() || m_sdate.compare(date) > 0) { m_sdate = date; }

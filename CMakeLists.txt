@@ -15,7 +15,7 @@ SET(INC_DIRECTORIES ${INC_DIRECTORIES} include)
 
 
 ######## Libraries ########
-SET(LINK_LIBRARIES ${LIBS_SYSTEM})
+SET(LINK_LIBRARIES ${LIBS_SYSTEM} exif)
 
 
 ######## Build and include settings ########
@@ -26,3 +26,4 @@ INCLUDE_DIRECTORIES(${INC_DIRECTORIES})
 FILE(GLOB SOURCES "src/*.cpp")
 
 ADD_EXECUTABLE(PhotoManager ${SOURCES})
+TARGET_LINK_LIBRARIES(PhotoManager ${LINK_LIBRARIES})

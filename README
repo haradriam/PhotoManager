@@ -1,0 +1,17 @@
+# Build
+
+1. Compile and install libexif (under `external` directory):
+```
+autoreconf -i
+./configure
+make
+make install
+```
+
+2. Compile PhotoManager:
+```
+mkdir build
+cd build
+cmake ..
+make
+```
