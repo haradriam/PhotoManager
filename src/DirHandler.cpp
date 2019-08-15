@@ -63,56 +63,54 @@ int CDirHandler::Execute()
          name = node->d_name;
          ext = name.substr(name.find_last_of(".") + 1);
 
-         // Try to get EXIF metadata (except for mp4).
-	 if (ext.compare("mp4") != 0)
-	 {
-            ExifData * metadata = exif_data_new_from_file(node->d_name);
-            if (metadata)
+         // Try to get EXIF metadata.
+         ExifData * metadata = exif_data_new_from_file(node->d_name);
+         if (metadata)
+         {
+            ExifEntry * entry = exif_content_get_entry(
+               metadata->ifd[EXIF_IFD_EXIF], EXIF_TAG_DATE_TIME_ORIGINAL);
+            if (entry)
             {
-               ExifEntry * entry = exif_content_get_entry(
-                  metadata->ifd[EXIF_IFD_EXIF], EXIF_TAG_DATE_TIME_ORIGINAL);
-               if (entry)
+               char field[32];
+               memset(field, 0, 32);
+
+               exif_entry_get_value(entry, field, 32);
+               if (strlen(field) > 0)
                {
-                  char field[32];
-                  memset(field, 0, 32);
+                  char * token = NULL;
+                  size_t token_len = 0;
+                  int del_char = 0;
+                  unsigned int i = 0;
 
-                  exif_entry_get_value(entry, field, 32);
-                  if (strlen(field) > 0)
+
+                  token = strtok(field, " ");
+                  token_len = strlen(token);
+                  for (i = 0, del_char = 0; i < token_len && i - del_char < 8; ++i)
                   {
-                     char * token = NULL;
-                     size_t token_len = 0;
-                     int del_char = 0;
-                     unsigned int i = 0;
-
-                     token = strtok(field, " ");
-                     token_len = strlen(token);
-                     for (i = 0, del_char = 0; i < token_len && i - del_char < 8; ++i)
-                     {
-                         if (token[i] == ':') { ++del_char; }
-                         else { date[i - del_char] = token[i]; }
-                     }
-                     date[8] = '\0';
-
-                     token = strtok(NULL, " ");
-                     token_len = strlen(token);
-                     for (i = 0, del_char = 0; i < token_len && i - del_char < 6; ++i)
-                     {
-                         if (token[i] == ':') { ++del_char; }
-                         else { hour[i - del_char] = token[i]; }
-                     }
-                     hour[6] = '\0';
+                      if (token[i] == ':' || token[i] == '-') { ++del_char; }
+                      else { date[i - del_char] = token[i]; }
                   }
-               }
+                  date[8] = '\0';
 
-               exif_data_unref(metadata);
+                  token = strtok(NULL, " ");
+                  token_len = strlen(token);
+                  for (i = 0, del_char = 0; i < token_len && i - del_char < 6; ++i)
+                  {
+                      if (token[i] == ':') { ++del_char; }
+                      else { hour[i - del_char] = token[i]; }
+                  }
+                  hour[6] = '\0';
+               }
             }
-	 }
+
+            exif_data_unref(metadata);
+         }
 
          // Get file metada (only if EXIF metada is not correct).
          if (strlen(date) != 8 || strlen(hour) != 6)
          {
             if (stat(node->d_name, &file_attr) != 0 ||
-                !(data = gmtime(&file_attr.st_mtime)))
+                !(data = localtime(&file_attr.st_mtime)))
             {
                std::cout << "Error getting file metada from " << node->d_name
                   << std::endl;
@@ -126,7 +124,7 @@ int CDirHandler::Execute()
                data->tm_hour, data->tm_min, data->tm_sec);
          }
 
-         // Update directoy date limitis.
+         // Update directoy date limits.
          if (m_sdate.empty() || m_sdate.compare(date) > 0) { m_sdate = date; }
          if (m_edate.empty() || m_edate.compare(date) < 0) { m_edate = date; }
 
